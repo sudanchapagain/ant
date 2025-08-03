@@ -1,14 +1,14 @@
 #![allow(dead_code)]
 
-use std::io;
+use fspp::*;
 use piglog::prelude::*;
 use piglog::*;
-use fspp::*;
+use std::io;
 
-use crate::places;
+use crate::config;
 use crate::generation;
 use crate::library::*;
-use crate::config;
+use crate::places;
 use crate::system;
 
 // Constants
@@ -17,7 +17,7 @@ const DEFAULT_USER_GEN: &str =
 #    Generation File    #
 # --------------------- #
 
-# Other generation files to import. (Example: intensive_apps -> ~/.config/rebos/imports/intensive_apps.toml)
+# Other generation files to import. (Example: intensive_apps -> ~/.config/ant/imports/intensive_apps.toml)
 imports = [
     # \"intensive_apps\",
 ]
@@ -71,8 +71,7 @@ hook_name = \"system_packages\" # This is used in hooks. (Example: post_system_p
 many_args = true
 ";
 
-const DEFAULT_FLATPAK_MANAGER_CONFIG: &str =
-"# Flatpak
+const DEFAULT_FLATPAK_MANAGER_CONFIG: &str = "# Flatpak
 
 add = \"flatpak install #:?\"
 remove = \"flatpak uninstall #:?\"
@@ -86,8 +85,7 @@ hook_name = \"flatpaks\"
 many_args = true
 ";
 
-const DEFAULT_CARGO_MANAGER_CONFIG: &str =
-"# Cargo
+const DEFAULT_CARGO_MANAGER_CONFIG: &str = "# Cargo
 
 add = \"cargo install #:?\"
 remove = \"cargo uninstall #:?\"
@@ -116,47 +114,64 @@ pub enum Config {
 
 // Create the user configuration.
 pub fn init_user_config() -> Result<(), io::Error> {
-    let system_hostname = match system::hostname() {
-        Ok(o) => o,
-        Err(e) => return Err(e),
-    };
+    let system_hostname = system::hostname()?;
 
-    let directories = vec![
+    let directories = [
         places::base_user(),
-        places::base_user().add_str("machines").add_str(&system_hostname),
+        places::base_user()
+            .add_str("machines")
+            .add_str(&system_hostname),
         places::base_user().add_str("imports"),
         places::base_user().add_str("hooks"),
         places::base_user().add_str("managers"),
     ];
 
     for i in directories.iter() {
-        if i.exists() == false {
+        if !i.exists() {
             match directory::create(i) {
                 Ok(_o) => info!("Created directory: {}", i.to_string()),
                 Err(e) => {
                     error!("Failed to create directory: {}", i.to_string());
                     return Err(e);
-                },
+                }
             };
         }
     }
 
-    let files = vec![
-        (DEFAULT_USER_GEN, config::config_for(Config::Generation, ConfigSide::User)),
-        (DEFAULT_USER_GEN, places::base_user().add_str("machines").add_str(&system_hostname).add_str("gen.toml")),
-        (DEFAULT_PACKAGE_MANAGER_CONFIG, places::base_user().add_str("managers/system.toml")),
-        (DEFAULT_FLATPAK_MANAGER_CONFIG, places::base_user().add_str("managers/flatpak.toml")),
-        (DEFAULT_CARGO_MANAGER_CONFIG, places::base_user().add_str("managers/cargo.toml")),
+    let files = [
+        (
+            DEFAULT_USER_GEN,
+            config::config_for(Config::Generation, ConfigSide::User),
+        ),
+        (
+            DEFAULT_USER_GEN,
+            places::base_user()
+                .add_str("machines")
+                .add_str(&system_hostname)
+                .add_str("gen.toml"),
+        ),
+        (
+            DEFAULT_PACKAGE_MANAGER_CONFIG,
+            places::base_user().add_str("managers/system.toml"),
+        ),
+        (
+            DEFAULT_FLATPAK_MANAGER_CONFIG,
+            places::base_user().add_str("managers/flatpak.toml"),
+        ),
+        (
+            DEFAULT_CARGO_MANAGER_CONFIG,
+            places::base_user().add_str("managers/cargo.toml"),
+        ),
     ];
 
     for i in files.iter() {
-        if i.1.exists() == false {
+        if !i.1.exists() {
             match file::write(i.0, &i.1) {
                 Ok(_o) => info!("Created file: {}", i.1.to_string()),
                 Err(e) => {
                     error!("Failed to create file: {}", i.1.to_string());
                     return Err(e);
-                },
+                }
             };
         }
     }
@@ -166,7 +181,7 @@ pub fn init_user_config() -> Result<(), io::Error> {
 
 // Return path for a config file.
 pub fn config_for(config: Config, side: ConfigSide) -> Path {
-    return match config {
+    match config {
         Config::Generation => match side {
             ConfigSide::User => places::base_user().add_str("gen.toml"),
             ConfigSide::System => match generation::current_gen() {
@@ -174,11 +189,11 @@ pub fn config_for(config: Config, side: ConfigSide) -> Path {
                 Err(_e) => {
                     error!("Failed to get config path for system generation!");
                     abort();
-                    return Path::new("This should never get returned.");
-                },
+                    Path::new("This should never get returned.")
+                }
             },
         },
-    };
+    }
 }
 
 pub trait ConfigInfoToMessage {
@@ -199,13 +214,17 @@ impl ConfigInfoToMessage for ConfigError {
 
                 for i in errors {
                     message.push('\n');
-                    message.push_str(&format!("  {}", i));
+                    message.push_str(&format!("  {i}"));
                 }
 
                 message
-            },
-            Self::MissingMachine => format!("Missing configuration for machine! (Machine specific gen.toml...)"),
-            Self::FailedToDeserializeConfigGeneration => format!("Failed to deserialize config (user-side) generation!"),
+            }
+            Self::MissingMachine => {
+                "Missing configuration for machine! (Machine specific gen.toml...)".to_string()
+            }
+            Self::FailedToDeserializeConfigGeneration => {
+                "Failed to deserialize config (user-side) generation!".to_string()
+            }
         }
     }
 }
@@ -217,7 +236,9 @@ pub enum ConfigWarning {
 impl ConfigInfoToMessage for ConfigWarning {
     fn msg(&self) -> String {
         match *self {
-            Self::UnusedHook(ref hook) => format!("Hook '{hook}' is never used. (Doesn't match any manager 'hook_name' fields.)"),
+            Self::UnusedHook(ref hook) => format!(
+                "Hook '{hook}' is never used. (Doesn't match any manager 'hook_name' fields.)"
+            ),
         }
     }
 }
@@ -226,12 +247,12 @@ pub struct ConfigCheckMiscInfo {
     pub warnings: Vec<ConfigWarning>,
 }
 
-// Validate user configuration.
-pub fn check_config() -> Result<Result<ConfigCheckMiscInfo, (Vec<ConfigError>, ConfigCheckMiscInfo)>, io::Error> {
+pub fn check_config()
+-> Result<Result<ConfigCheckMiscInfo, (Vec<ConfigError>, ConfigCheckMiscInfo)>, io::Error> {
     let mut errors: Vec<ConfigError> = Vec::new();
     let mut warnings: Vec<ConfigWarning> = Vec::new();
 
-    match generation::gen(ConfigSide::User) {
+    match generation::generate(ConfigSide::User) {
         Ok(_) => (),
         Err(_) => errors.push(ConfigError::FailedToDeserializeConfigGeneration),
     };
@@ -242,7 +263,7 @@ pub fn check_config() -> Result<Result<ConfigCheckMiscInfo, (Vec<ConfigError>, C
             piglog::fatal!("Failed to get a list of managers due to IO error: {}", e);
 
             return Err(e);
-        },
+        }
     };
 
     let managers_loaded = {
@@ -255,7 +276,7 @@ pub fn check_config() -> Result<Result<ConfigCheckMiscInfo, (Vec<ConfigError>, C
                     piglog::fatal!("Failed to load manager '{}' due to IO error: {}", i, e);
 
                     return Err(e);
-                },
+                }
             });
         }
 
@@ -272,17 +293,20 @@ pub fn check_config() -> Result<Result<ConfigCheckMiscInfo, (Vec<ConfigError>, C
                     Ok(_) => (),
                     Err(e) => errors.push(ConfigError::InvalidManager(man.to_string(), e)),
                 };
-            },
+            }
             Err(e) => {
                 piglog::fatal!("Failed to load manager '{}' due to IO error: {}", man, e);
 
                 return Err(e);
-            },
+            }
         };
     }
 
-    // Check: Missing machine config.
-    if places::base_user().add_str(&format!("machines/{}", hostname)).add_str("gen.toml").exists() == false {
+    if !places::base_user()
+        .add_str(&format!("machines/{hostname}"))
+        .add_str("gen.toml")
+        .exists()
+    {
         errors.push(ConfigError::MissingMachine);
     }
 
@@ -304,18 +328,16 @@ pub fn check_config() -> Result<Result<ConfigCheckMiscInfo, (Vec<ConfigError>, C
     for h in directory::list_items(&places::base_user().add_str("hooks"))? {
         let hook_name = h.basename();
 
-        if used_hooks.contains(&hook_name) == false {
+        if !used_hooks.contains(&hook_name) {
             warnings.push(ConfigWarning::UnusedHook(hook_name));
         }
     }
 
     let warnings_len = warnings.len();
 
-    let misc_info = ConfigCheckMiscInfo {
-        warnings,
-    };
+    let misc_info = ConfigCheckMiscInfo { warnings };
 
-    if errors.len() > 0 {
+    if !errors.is_empty() {
         return Ok(Err((errors, misc_info)));
     }
 

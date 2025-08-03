@@ -1,11 +1,11 @@
 [package]
-name = "rebos"
-authors = ["Jackson Novak <jacksonnovak@proton.me>"]
-version = "3.5.2"
-edition = "2021"
-description = "NixOS-like repeatability for any Linux distro."
+name = "ant"
+authors = ["Sudan Chapagain <sudanchapagain@proton.me>"]
+version = "0.1.0"
+edition = "2024"
+description = "declarative package management"
 license = "GPL-3.0-or-later"
-repository = "https://gitlab.com/Oglo12/rebos"
+repository = "https://github.com/sudanchapagain/ant"
 
 [profile.bench]
 lto = "thin"

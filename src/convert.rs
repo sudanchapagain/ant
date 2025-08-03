@@ -7,10 +7,10 @@ pub fn str_to_string_vec(the_str: &str, split_at: &str) -> Vec<String> {
         return_vec.push(i.to_string());
     }
 
-    return return_vec;
+    return_vec
 }
 
-pub fn string_vec_to_string(vector: &Vec<String>, filler: &str) -> String {
+pub fn string_vec_to_string(vector: &[String], filler: &str) -> String {
     let mut phrase = String::new();
 
     for i in 0..vector.len() {
@@ -21,5 +21,5 @@ pub fn string_vec_to_string(vector: &Vec<String>, filler: &str) -> String {
         }
     }
 
-    return phrase;
+    phrase
 }

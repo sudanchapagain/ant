@@ -1,6 +1,6 @@
 #![allow(dead_code)]
 
-use clap::{ Parser, Subcommand, ValueEnum };
+use clap::{Parser, Subcommand, ValueEnum};
 use piglog::LogMode;
 
 #[derive(Parser)]
@@ -26,34 +26,29 @@ pub enum Commands {
         #[command(subcommand)]
         command: ConfigCommands,
     },
-    /// Force Rebos to unlock (this could break your system if done without reason)
+    /// Force ant to unlock (this could break your system if done without reason)
     ForceUnlock,
-    /// Is Rebos unlocked? (Exit Status: (0 = Yes, 1 = No))
+    /// Is ant unlocked? (Exit Status: (0 = Yes, 1 = No))
     IsUnlocked,
     /// Manager commands
     Managers {
         #[command(subcommand)]
         command: ManagerCommands,
     },
-    /// API for things like scripting
-    API {
+    /// Api for things like scripting
+    Api {
         #[command(subcommand)]
-        command: APICommands,
+        command: ApiCommands,
     },
 }
 
 #[derive(Subcommand, Debug)]
-pub enum APICommands {
-    /// Use the Rebos log message system
-    Echo {
-        log_mode: LogMode,
-        message: String,
-    },
-    /// Use the Rebos log message system (Generic)
-    EchoGeneric {
-        message: String,
-    },
-    /// Use Rebos to ask the user for a boolean yes or no question (Exit Status: (0 = Yes, 1 = No))
+pub enum ApiCommands {
+    /// Use the ant log message system
+    Echo { log_mode: LogMode, message: String },
+    /// Use the ant log message system (Generic)
+    EchoGeneric { message: String },
+    /// Use ant to ask the user for a boolean yes or no question (Exit Status: (0 = Yes, 1 = No))
     BoolQuestion {
         /// Question to be asked
         question: String,
@@ -76,9 +71,9 @@ pub enum ManagerCommands {
 
 #[derive(Subcommand, Debug)]
 pub enum ConfigCommands {
-    /// Create a default Rebos configuration
+    /// Create a default ant configuration
     Init,
-    /// Check for warnings and errors in the Rebos configuration
+    /// Check for warnings and errors in the ant configuration
     Check,
 }
 

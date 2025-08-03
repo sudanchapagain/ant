@@ -1,7 +1,7 @@
-use std::io;
-use piglog::prelude::*;
-use fspp::*;
 use colored::Colorize;
+use fspp::*;
+use piglog::prelude::*;
+use std::io;
 
 use crate::places;
 use crate::proc;
@@ -11,22 +11,22 @@ use crate::proc;
 pub enum LockState {
     /// The lock is off
     Off,
-    /// The lock is on, and the owner is this Rebos process
+    /// The lock is on, and the owner is this ant process
     OnOwned,
-    /// The lock is on, but another Rebos process is the owner
+    /// The lock is on, but another ant process is the owner
     OnNotOwned,
 }
 
-// Lock other Rebos sessions from running.
+// Lock other ant sessions from running.
 pub fn lock_on() -> Result<(), io::Error> {
-    if is_lock_on() == false {
+    if !is_lock_on() {
         match file::write("", &lock_file_path()) {
             Ok(_) => (),
             Err(e) => {
                 piglog::error!("Failed to create locking file! ({e})");
 
                 return Err(e);
-            },
+            }
         };
 
         match file::write(&proc::get_proc_id(), &lock_file_owner_path()) {
@@ -35,7 +35,7 @@ pub fn lock_on() -> Result<(), io::Error> {
                 piglog::error!("Failed to create and write locking owner file! ({e})");
 
                 return Err(e);
-            },
+            }
         };
     }
 
@@ -52,12 +52,10 @@ pub fn lock_off_force() -> Result<(), io::Error> {
     lock_off_core(true)
 }
 
-// Unlock other Rebos sessions from running.
+// Unlock other ant sessions from running.
 pub fn lock_off_core(force: bool) -> Result<(), io::Error> {
-    if force == false {
-        if lock_state()? != LockState::OnOwned {
-            return Ok(());
-        }
+    if !force && lock_state()? != LockState::OnOwned {
+        return Ok(());
     }
 
     if is_lock_on_without_owner() {
@@ -67,7 +65,7 @@ pub fn lock_off_core(force: bool) -> Result<(), io::Error> {
                 piglog::error!("Failed to delete locking file! ({e})");
 
                 return Err(e);
-            },
+            }
         };
 
         match fs_action::delete(&lock_file_owner_path()) {
@@ -76,7 +74,7 @@ pub fn lock_off_core(force: bool) -> Result<(), io::Error> {
                 piglog::error!("Failed to delete locking owner file! ({e})");
 
                 return Err(e);
-            },
+            }
         };
     }
 
@@ -106,7 +104,7 @@ fn is_lock_on_without_owner() -> bool {
 // Check if the lock is active or not.
 fn is_lock_on_core(include_owner: bool) -> bool {
     if lock_file_path().exists() {
-        if include_owner == false {
+        if !include_owner {
             return true;
         }
 
@@ -117,9 +115,7 @@ fn is_lock_on_core(include_owner: bool) -> bool {
         let owner = owner.trim();
 
         owner != proc::get_proc_id().trim()
-    }
-
-    else {
+    } else {
         false
     }
 }
@@ -127,9 +123,15 @@ fn is_lock_on_core(include_owner: bool) -> bool {
 // Abort the program if the lock is on.
 pub fn abort_if_locked() {
     if is_lock_on() {
-        piglog::warning!("Rebos process lock detected... aborting...");
-        piglog::note!("If there are no other Rebos processes running, you can force unlock with the following command:");
-        piglog::note!("{} {}", "$:".bright_cyan().bold(), "rebos force-unlock".bright_magenta());
+        piglog::warning!("ant process lock detected... aborting...");
+        piglog::note!(
+            "If there are no other ant processes running, you can force unlock with the following command:"
+        );
+        piglog::note!(
+            "{} {}",
+            "$:".bright_cyan().bold(),
+            "ant force-unlock".bright_magenta()
+        );
 
         std::process::exit(1);
     }

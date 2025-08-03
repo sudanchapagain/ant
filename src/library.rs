@@ -1,11 +1,11 @@
 #![allow(dead_code)]
 
+use colored::Colorize;
+use hashbrown::HashMap;
+use piglog::prelude::*;
 use std::io;
 use std::process::Command;
-use colored::Colorize;
 use users::get_current_username;
-use piglog::prelude::*;
-use hashbrown::HashMap;
 
 use crate::convert::*;
 use crate::generation::Generation;
@@ -21,7 +21,8 @@ pub struct History {
     pub line: String,
 }
 
-pub fn abort() { // Try not to use this function!
+pub fn abort() {
+    // Try not to use this function!
     std::process::exit(1);
 }
 
@@ -29,7 +30,8 @@ pub fn run_command(command: &str) -> bool {
     match Command::new("bash").args(["-c", command]).status() {
         Ok(o) => o,
         Err(_e) => return false,
-    }.success()
+    }
+    .success()
 }
 
 pub fn cut(full: &str, fword: u32, dword: char) -> String {
@@ -71,15 +73,11 @@ pub fn name_from_path(path: &str) -> String {
 }
 
 pub fn custom_error(error: &str) -> io::Error {
-    io::Error::new(io::ErrorKind::Other, error)
+    io::Error::other(error)
 }
 
 pub fn is_root_user() -> bool {
-    if username() == "root" {
-        true
-    } else {
-        false
-    }
+    username() == "root"
 }
 
 pub fn username() -> String {
@@ -95,7 +93,7 @@ pub fn remove_array_duplicates<T: Clone + PartialEq>(dup_vec: &[T]) -> Vec<T> {
     let mut new_vec: Vec<T> = Vec::new();
 
     for i in dup_vec.iter() {
-        if new_vec.contains(i) == false {
+        if !new_vec.contains(i) {
             new_vec.push(i.clone());
         }
     }
@@ -110,11 +108,20 @@ pub fn history_gen(gen_1: &Generation, gen_2: &Generation) -> HashMap<String, Ve
         let items_2 = gen_2.managers.get(i).unwrap();
 
         match gen_1.managers.get(i) {
-            Some(items_1) => history_map.insert(i.to_string(), history(&items_1.items, &items_2.items)),
-            None => history_map.insert(i.to_string(), items_2.items.iter().map(|x| History {
-                mode: HistoryMode::Add,
-                line: x.to_string(),
-            }).collect()),
+            Some(items_1) => {
+                history_map.insert(i.to_string(), history(&items_1.items, &items_2.items))
+            }
+            None => history_map.insert(
+                i.to_string(),
+                items_2
+                    .items
+                    .iter()
+                    .map(|x| History {
+                        mode: HistoryMode::Add,
+                        line: x.to_string(),
+                    })
+                    .collect(),
+            ),
         };
     }
 
@@ -123,10 +130,19 @@ pub fn history_gen(gen_1: &Generation, gen_2: &Generation) -> HashMap<String, Ve
 
         match gen_2.managers.get(i) {
             Some(_) => (),
-            None => { history_map.insert(i.to_string(), items_1.items.iter().map(|x| History {
-                mode: HistoryMode::Remove,
-                line: x.to_string(),
-            }).collect()); },
+            None => {
+                history_map.insert(
+                    i.to_string(),
+                    items_1
+                        .items
+                        .iter()
+                        .map(|x| History {
+                            mode: HistoryMode::Remove,
+                            line: x.to_string(),
+                        })
+                        .collect(),
+                );
+            }
         };
     }
 
@@ -138,12 +154,10 @@ pub fn print_history_gen(history: &HashMap<String, Vec<History>>) {
         piglog::info!("{}:", i);
 
         print_history(history.get(i).unwrap());
-
-        println!("");
     }
 }
 
-pub fn print_history(diff_vec: &Vec<History>) {
+pub fn print_history(diff_vec: &[History]) {
     for i in diff_vec.iter() {
         match i.mode {
             HistoryMode::Add => println!("{}", format!("+ {}", i.line).bright_green().bold()),
@@ -159,24 +173,20 @@ pub fn history(array_1: &[String], array_2: &[String]) -> Vec<History> {
     let mut history_vec: Vec<History> = Vec::new();
 
     for i in lines_1.iter() {
-        if i.trim() != "" {
-            if lines_2.contains(i) == false {
-                history_vec.push(History {
-                    mode: HistoryMode::Remove,
-                    line: i.to_string(),
-                });
-            }
+        if i.trim() != "" && !lines_2.contains(i) {
+            history_vec.push(History {
+                mode: HistoryMode::Remove,
+                line: i.to_string(),
+            });
         }
     }
 
     for i in lines_2.iter() {
-        if i.trim() != "" {
-            if lines_1.contains(i) == false {
-                history_vec.push(History {
-                    mode: HistoryMode::Add,
-                    line: i.to_string(),
-                });
-            }
+        if i.trim() != "" && !lines_1.contains(i) {
+            history_vec.push(History {
+                mode: HistoryMode::Add,
+                line: i.to_string(),
+            });
         }
     }
 

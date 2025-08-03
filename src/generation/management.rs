@@ -1,5 +1,5 @@
-use std::io;
 use piglog::prelude::*;
+use std::io;
 
 use crate::lock;
 
@@ -12,7 +12,7 @@ pub fn tidy_up() -> Result<(), io::Error> {
     piglog::success!("Deleted {deleted} duplicate generations!");
     piglog::success!("Aligned {aligned} generations!");
 
-    return Ok(());
+    Ok(())
 }
 
 pub fn clean_dups(verbose: bool) -> Result<usize, io::Error> {
@@ -45,7 +45,7 @@ pub fn clean_dups(verbose: bool) -> Result<usize, io::Error> {
                             piglog::fatal!("Failed to set 'current' generation!");
 
                             return Err(e);
-                        },
+                        }
                     };
                 }
 
@@ -56,7 +56,7 @@ pub fn clean_dups(verbose: bool) -> Result<usize, io::Error> {
                             piglog::fatal!("Failed to set 'built' generation!");
 
                             return Err(e);
-                        },
+                        }
                     };
                 }
 
@@ -66,25 +66,21 @@ pub fn clean_dups(verbose: bool) -> Result<usize, io::Error> {
                         piglog::fatal!("Failed to delete generation: {i}");
 
                         return Err(e);
-                    },
+                    }
                 };
 
                 deleted += 1;
-            }
-
-            else {
+            } else {
                 comparison = Some(generation);
                 comp_num = Some(i);
             }
-        }
-
-        else {
+        } else {
             comparison = Some(generation);
             comp_num = Some(i);
         }
     }
 
-    return Ok(deleted);
+    Ok(deleted)
 }
 
 pub fn align(verbose: bool) -> Result<usize, io::Error> {
@@ -95,9 +91,7 @@ pub fn align(verbose: bool) -> Result<usize, io::Error> {
     let mut gen_nums = super::list_gen_nums()?;
     gen_nums.sort();
 
-    let mut comparison: usize = 0;
-
-    for i in gen_nums {
+    for (comparison, i) in gen_nums.into_iter().enumerate() {
         let new_number = comparison + 1;
 
         if i > new_number {
@@ -111,14 +105,12 @@ pub fn align(verbose: bool) -> Result<usize, io::Error> {
                     piglog::fatal!("Failed to move generation {i} to {new_number}!");
 
                     return Err(e);
-                },
+                }
             };
 
             moved += 1;
         }
-
-        comparison += 1;
     }
 
-    return Ok(moved);
+    Ok(moved)
 }
